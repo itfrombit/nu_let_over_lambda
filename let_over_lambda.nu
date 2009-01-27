@@ -463,16 +463,14 @@
            (this reset:)
            (dlambda
                    (reset: ()
-                    (progn
-                          (set s 0)
-                          (set m 1)
-                          (set e 2)))
+                    (set s 0)
+                    (set m 1)
+                    (set e 2))
                    (else (n)
-                         (progn
-                               (set s (+ s n))
-                               (set m (* m n))
-                               (set e (pow e n))
-                               (list s m e))))))
+                         (set s (+ s n))
+                         (set m (* m n))
+                         (set e (pow e n))
+                         (list s m e)))))
 
 
 (puts (calc reset:))
