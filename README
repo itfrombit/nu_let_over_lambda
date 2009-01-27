@@ -1,0 +1,38 @@
+INTRODUCTION
+
+This is a Nu version of the code from Doug Hoyte's excellent book 
+"Let Over Lambda".  The book is focused on harnessing the power of 
+Lisp macros.  If you want to hone your macro-fu, this is a great
+book to read.  The book uses and builds on many of the ideas in
+Paul Graham's book "On Lisp", so it would be helpful to be familiar
+with "On Lisp" first.
+
+You can find more information about Doug Hoyte's book at 
+http://letoverlambda.com.
+
+
+I didn't try to port any of the Common Lisp reader macros, as Nu
+doesn't currently have a reader macro facility.
+
+Also, I didn't use Hoyte's defmacro! enhancement.  defmacro! adds two
+main features to Common Lisp's defmacro:
+1. Ability to use gensyms without first declaring them.
+2. Ability to declaratively enforce once-only evaluation of macro
+   parameters. 
+
+Nu's macro facility already has feature 1.  And feature 2 is 
+only a slight amount of syntactic sugar over a let form.
+
+
+SYSTEM REQUIREMENTS
+
+This code requires Nu 0.4 or above.
+
+
+AUTHOR
+
+Doug Hoyte wrote the original Common Lisp code to accompany the book.
+The code is available at the book's web site.
+
+Jeff Buck ported the code to Nu, added some Common Lisp support functions
+that are not already in Nu, and added some enhancements to the utilities.
