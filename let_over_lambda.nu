@@ -372,6 +372,7 @@
            (do (*params)
                (apply this *params))))
 
+(puts "------- alet-test -------")
 (set alet-test
      (alet ((acc 0))
            (ado (n)
@@ -384,7 +385,6 @@
                                       (else (decf acc n))))))
                     (else (incf acc n))))))
 
-
 (puts (alet-test 10))
 (puts (alet-test 1))
 (puts (alet-test 4))
@@ -394,9 +394,9 @@
 (alet-test invert:)
 (puts (alet-test 1))
 (puts (alet-test 1))
-(puts "little")
 
 
+(puts "------- alet-test2 -------")
 (set alet-test2
      (alet ((acc 0))
            (function going-up (n)
@@ -409,7 +409,6 @@
                     (else (decf acc n))))
            'going-up))
 
-
 (puts (alet-test2 10))
 (puts (alet-test2 1))
 (puts (alet-test2 4))
@@ -419,10 +418,8 @@
 (alet-test2 invert:)
 (puts (alet-test2 1))
 (puts (alet-test2 1))
-(puts "little")
 
-(macro-1 alet-fsm-state (s)
-     `(set this ,s))
+
 
 (macro-1 alet-fsm (*states)
      `(progn
@@ -434,6 +431,7 @@
             ,(caar *states)))
 
 
+(puts "------- alet-fsm-test -------")
 (set alet-fsm-test
      (alet ((acc 0))
            (alet-fsm
@@ -446,9 +444,6 @@
                              (then (state 'going-up))
                              (else (decf acc n)))))))
 
-
-
-(puts "------- alet-fsm-test -------")
 (puts (alet-fsm-test 10))
 (puts (alet-fsm-test 1))
 (puts (alet-fsm-test 1))
@@ -458,7 +453,8 @@
 (puts (alet-fsm-test 1))
 
 
-(set calc
+(puts "------- calc-test -------")
+(set calc-test
      (alet ((s 0) (m 1) (e 2))
            (this reset:)
            (dlambda
@@ -473,34 +469,40 @@
                          (list s m e)))))
 
 
-(puts (calc reset:))
-(puts (calc 2))
-(puts (calc 2))
-(puts (calc 2))
-(puts (calc 2))
-(puts (calc 2))
-(puts (calc reset:))
-(puts (calc 0.5))
-(puts (calc 0.5))
-(puts (calc 0.5))
-(puts (calc 0.5))
+(puts (calc-test reset:))
+(puts (calc-test 2))
+(puts (calc-test 2))
+(puts (calc-test 2))
+(puts (calc-test 2))
+(puts (calc-test 2))
+
+
+(puts "------- calc-test part 2 -------")
+(puts (calc-test reset:))
+(puts (calc-test 0.5))
+(puts (calc-test 0.5))
+(puts (calc-test 0.5))
+(puts (calc-test 0.5))
 
 
 ;;=====================================================================
 ;; Tests
+;; TODO - put these in a separate file...
 
-;(puts "mc: #{(weave '(7 8 9) '(1 2 3))}")
-;(puts "mc: #{(weave '(a b c) '(x y z))}")
-;(puts "mc: #{(weave nil)}")
-;(puts "mc: #{(weave)}")
 
-;(puts (cars '(a b c) '(1 2 3) '(x y z)))
-;(puts (cdrs '(a b c) '(1 2 3) '(x y z)))
+(puts "------- weave-test -------")
+(puts "mc: #{(weave '(7 8 9) '(1 2 3))}")
+(puts "mc: #{(weave '(a b c) '(x y z))}")
+(puts "mc: #{(weave nil)}")
+(puts "mc: #{(weave)}")
 
-;(puts (mapcar (do (x) (* x 10)) '(1 2 3)))
-;(puts (mapcar (do (x y) (* x 10)) '(7 8 9) '(1 2 3)))
+(puts "------- cars-test -------")
+(puts (cars '((a b c) (1 2 3) (x y z))))
+(puts "------- cdrs-test -------")
+(puts (cdrs '((a b c) (1 2 3) (x y z))))
 
-;(puts (mapcar car '((a b c) (x y z))))
+(puts (mapcar-1 (do (x) (* x 10)) '(1 2 3)))
+(puts (mapcar-1 car '((a b c) (x y z))))
 
 
 ;(puts (mkstr "a" "b" "c"))
@@ -600,7 +602,7 @@
 ;           (evenp it)
 ;           'even-number))
 
-
+(puts "------- counter-test -------")
 (puts (counter inc: 1))
 (puts (counter inc: 1))
 (puts (counter inc: 10))
@@ -628,6 +630,7 @@
 
 ;; Try out anaphoric do:
 ;; List numbers from n to 1
+(puts "------- ado-test -------")
 (puts ((ado (n)
             (if (> n 0)
                 (then (cons n (self (- n 1))))))
@@ -635,6 +638,7 @@
 
 
 ;; Test aif:
+(puts "------- aif-test -------")
 (aif (* 5 5)
      (then (puts it))
      (else (puts "fail")))
