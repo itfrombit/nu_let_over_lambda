@@ -1,5 +1,8 @@
 INTRODUCTION
 
+NOTE: This is still a work in progress!
+
+
 This is a Nu version of the code from Doug Hoyte's excellent book 
 "Let Over Lambda".  The book is focused on harnessing the power of 
 Lisp macros.  If you want to hone your macro-fu, this is a great
