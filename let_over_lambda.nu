@@ -1,182 +1,43 @@
-;; These functions are part of Common Lisp.
-;; The subsequent examples in the book assume they are defined.
+;; @file       let_over_lambda.nu
+;; @discussion A Nu port of examples in Doug Hoyte's book "Let Over Lambda".
+;;
+;; @copyright  Copyright (c) 2009 Jeff Buck
+;;
+;;   Licensed under the Apache License, Version 2.0 (the "License");
+;;   you may not use this file except in compliance with the License.
+;;   You may obtain a copy of the License at
+;;
+;;       http://www.apache.org/licenses/LICENSE-2.0
+;;
+;;   Unless required by applicable law or agreed to in writing, software
+;;   distributed under the License is distributed on an "AS IS" BASIS,
+;;   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;;   See the License for the specific language governing permissions and
+;;   limitations under the License.
 
+(load "cl_utils")
+
+;; Missing from math.nu
 (set pow (NuBridgedFunction functionWithName:"pow" signature:"ddd"))
 
-(function mapcar-1 (f l)
-     (cond
-          ((null? l) nil)
-          (else
-               (cons (f (car l)) (mapcar-1 f (cdr l))))))
 
-;; Nu's cadr-type built-ins are postfix.
-;; Not as suitable for lispy mapping functions.
-(function caar (l)
-     (car (car l)))
+;; Chapter 2 - Closures
 
-(function cadr (l)
-     (car (cdr l)))
+(function block-scanner (trigger-string)
+     (let* ((trig (listify trigger-string))
+            (curr trig))
+           (do (data-string)
+               (let ((data (listify data-string)))
+                    (mapcar-1
+                             (do (c)
+                                 (if curr
+                                     (then (set curr
+                                                (if (eq (car curr) c)
+                                                    (then (cdr curr))
+                                                    (else trig))))))
+                             data)
+                    (not curr)))))
 
-(function cddr (x)
-     (cdr (cdr x)))
-
-
-(function cars (lists)
-     (mapcar-1 car lists))
-
-(function cdrs (lists)
-     (mapcar-1 cdr lists))
-
-
-;; Not part of Common Lisp, but provided as a convenience
-;; function that a multi-list mapcar could otherwise provide.
-(function weave (*lists)
-     (function weave-rec (lists)
-          (cond
-               ((null? lists) nil)
-               ((null? (car lists)) nil)
-               (else
-                    (cons
-                         (cars lists)
-                         (weave-rec (cdrs lists))))))
-     (weave-rec *lists))
-
-
-(macro-1 incf (n *delta)
-     (if (not (eq *delta '()))
-         (then `(set ,n (+ ,n ,(car *delta))))
-         (else `(set ,n (+ ,n 1)))))
-
-(macro-1 decf (n *delta)
-     (if (not (eq *delta '()))
-         (then `(set ,n (- ,n ,(car *delta))))
-         (else `(set ,n (- ,n 1)))))
-
-
-(function evenp (x)
-     ((eq 0 (% x 2))))
-
-(function oddp (x)
-     (not (evenp x)))
-
-(function select-if (f l)
-     (function select-if-acc (f l acc)
-          (if (null? l)
-              (then acc)
-              (else
-                   (if (f (car l))
-                       (then (select-if-acc f (cdr l) (append acc (list (car l)))))
-                       (else (select-if-acc f (cdr l) acc))))))
-     (select-if-acc f l nil))
-
-
-(function nthcdr (n source)
-     (cond ((eq n 0)
-            source)
-           ((> n (source length)) nil)
-           (else (nthcdr (- n 1) (cdr source)))))
-
-
-(function subseq (l start end)
-     (if (eq (l class) ("a" class))
-         (then
-              ;; String - use substring
-              (l substringWithRange:(list start (- end start))))
-         (else
-              ;; List - use cdrs
-              (set i start)
-              (set result nil)
-              (while (< i end)
-                     (set result (append result (list (car (nthcdr i l)))))
-                     (set i (+ i 1)))
-              result)))
-
-
-(function last (l)
-     (let ((len (l length)))
-          (subseq l (- len 1) len)))
-
-
-(function butlast (l *n)
-     (if (not (eq *n '()))
-         (then (set count (car *n)))
-         (else (set count 1)))
-     (let ((len (l length)))
-          (if (>= count len)
-              (then '())
-              (else (subseq l 0 (- len count))))))
-
-
-
-(macro-1 let* (bindings *body)
-     (if (null? bindings)
-         (then
-              `(progn
-                     ,@*body))
-         (else
-              (set __nextcall `(let* ,(cdr bindings) ,@*body))
-              `(let (,(car bindings))
-                    ,__nextcall))))
-
-
-; Nu actually adds a "list" method to NSArray.
-; This function is not necessary...
-;(function listify (ar)
-;     (cond
-;          ((or (eq ar nil) (eq (ar count) 0)) nil)
-;          (else
-;               (let ((i 0)
-;                     (l nil))
-;                    (while (< i (ar count))
-;                           (set l (append l (list (ar i))))
-;                           (set i (+ i 1)))
-;                    l))))
-
-
-(function mkstr (*rest)
-     (set s "")
-     (*rest each:
-            (do (a)
-                (set s (+ s a))))
-     s)
-
-(function symb (*rest)
-     ((apply mkstr *rest) symbolValue))
-
-
-
-
-(function group (source n)
-     (function group-rec (source n acc)
-          (let ((rest (nthcdr n source)))
-               (if (pair? rest)
-                   (then
-                        (group-rec rest n (cons (subseq source 0 n) acc)))
-                   (else
-                        (reverse (cons source acc))))))
-     (if source
-         (then (group-rec source n nil))
-         (else nil)))
-
-
-
-(function flatten (x)
-     (function flatten-rec (x acc)
-          (cond
-               ((eq x nil) acc)
-               ((atom? x) (cons x acc))
-               (else (flatten-rec (car x) (flatten-rec (cdr x) acc)))))
-     (flatten-rec x nil))
-
-(function fact (x)
-     (if (eq x 0)
-         (then 1)
-         (else (* x (fact (- x 1))))))
-
-(function choose (n r)
-     (/ (fact n)
-        (fact (- n r))
-        (fact r)))
 
 
 (let ((direction 'up))
