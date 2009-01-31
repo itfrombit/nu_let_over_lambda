@@ -19,12 +19,53 @@ doesn't currently have a reader macro facility.
 
 Also, I didn't use Hoyte's defmacro! enhancement.  defmacro! adds two
 main features to Common Lisp's defmacro:
-1. Ability to use gensyms without first declaring them.
+1. Ability to use gensyms without first declaring them (g!xxx syntax).
 2. Ability to declaratively enforce once-only evaluation of macro
-   parameters. 
+   parameters (o!xxx syntax). 
 
 Nu's macro facility already has feature 1.  And feature 2 is 
-only a slight amount of syntactic sugar over a let form.
+only a slight amount of syntactic sugar over a let form, so I 
+just use the lets where needed.  I'm sure you get used to seeing
+the o!xxx syntax, but I actually like seeing the evaluation steps
+of the macro arguments.
+
+
+HOW TO USE
+
+There are 3 files of "pure code":
+
+1. cl_utils.nu             - Common Lisp functions that aren't part of Nu.
+
+2. with_test.nu            - Macros that wrap NuTestCase.  The benefit of
+                             doing this is that you can set the variable
+                             "show-verbose-output" to t in either
+                             with_test.nu or in any of your test_xxx.nu 
+                             files, and when you run the test cases, you'll
+                             see the code and output of each assert_equals
+                             statement.
+
+3. let_over_lambda.nu      - Example functions and macros from the book.
+
+
+There are 2 files that exercise the above code:
+
+1. test_cl_utils.nu        - examples for the functions and macros in
+                             cl_utils.nu.
+
+2. test_let_over_lambda.nu - examples from the functions and macros
+                             in let_over_lambda.nu.
+
+
+You can run all of the test cases in both test_xxx files running "nuke"
+("test" is the default target).  To make it interesting, set 
+show-verbose-output to t in with_test.nu so you can see each line of 
+code that's being tested along with the result.
+
+The test code in the test_xxx.nu files are in the same order as the 
+functions and macros in the respective xxx.nu files, so it's pretty 
+easy to follow along.  I usually open up one of the test_xxx.nu files
+in TextMate (with the Nu bundle installed) and Shift-Command-R to run
+the unit tests.
 
 
 SYSTEM REQUIREMENTS

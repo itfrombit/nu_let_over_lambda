@@ -56,6 +56,9 @@
 (function oddp (x)
      (not (evenp x)))
 
+(set even? evenp)
+(set odd? oddp)
+
 (function select-if (f l)
      (function select-if-acc (f l acc)
           (if (null? l)
@@ -77,21 +80,30 @@
 (function subseq (l start end)
      (if (eq (l class) ("a" class))
          (then
-              ;; String - use substring
-              (l substringWithRange:(list start (- end start))))
+              (if (>= start end)
+                  (then "")
+                  (else
+                       ;; String - use substring
+                       (l substringWithRange:(list start (- end start))))))
          (else
-              ;; List - use cdrs
+              ;; Assume a list - use cdrs
+              (set len (l length))
               (set i start)
               (set result nil)
-              (while (< i end)
+              (while (and (< i end) (< i len))
                      (set result (append result (list (car (nthcdr i l)))))
                      (set i (+ i 1)))
               result)))
 
 
-(function last (l)
+(function last (l *n)
      (let ((len (l length)))
-          (subseq l (- len 1) len)))
+          (if *n
+              (then (set count (car *n)))
+              (else (set count 1)))
+          (if (> count len)
+              (then (set count len)))
+          (subseq l (- len count) len)))
 
 
 (function butlast (l *n)
