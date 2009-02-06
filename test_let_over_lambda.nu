@@ -177,8 +177,10 @@
           ;; Try it with a number < 1
           (assert_equal '(0 1 2) (calc-test reset:))
           (assert_equal `(0.5 0.5 ,(pow 2 0.5)) (calc-test 0.5))
-          (assert_equal `(,(+ 0.5 0.5) ,(* 0.5 0.5) ,(pow (pow 2 0.5) 0.5)) (calc-test 0.5))
-          (assert_equal `(,(+ 0.5 0.5 0.5) ,(* 0.5 0.5 0.5) ,(pow (pow (pow 2 0.5) 0.5) 0.5)) (calc-test 0.5)))
+          (assert_equal `(,(+ 0.5 0.5) ,(* 0.5 0.5)
+                           ,(pow (pow 2 0.5) 0.5)) (calc-test 0.5))
+          (assert_equal `(,(+ 0.5 0.5 0.5) ,(* 0.5 0.5 0.5)
+                           ,(pow (pow (pow 2 0.5) 0.5) 0.5)) (calc-test 0.5)))
      
      
      (with-test-case testAdo
@@ -282,6 +284,126 @@
           (alet-fsm-test invert:)
           (assert_equal 10 (alet-fsm-test 1))
           (assert_equal 11 (alet-fsm-test 1)))
+     
+     
+     (with-test-case testIchainBefore
+          (set icb
+               (alet ((acc 0))
+                     ;; These should be called in reverse order
+                     (ichain-before (puts "icb: ichain-before A"))
+                     (ichain-before (puts "icb: ichain-before B"))
+                     (ichain-before (puts "icb: ichain-before C"))
+                     (ichain-before (puts "icb: Changing from #{acc}"))
+                     (do (n)
+                         (incf acc n))))
+          
+          (assert_equal 2 (icb 2))
+          (assert_equal 4 (icb 2))
+          
+          (set icb2
+               (alet ((acc 0))
+                     (do (n)
+                         (ichain-before (puts "icb2: ichain-before"))
+                         (incf acc n))))
+          
+          (set i 1)
+          (while (<= i 4)
+                 (puts "invocation #{i}")
+                 (icb2 i)
+                 (incf i))
+          (assert_equal (/ (* i (+ i 1)) 2) (icb2 i)))
+     
+     
+     (with-test-case testIchainAfter
+          (set icba
+               (alet ((acc 0))
+                     (ichain-before (puts "icba: Changing from #{acc}"))
+                     (ichain-after  (puts "icba: Changed to #{acc}"))
+                     (do (n)
+                         (incf acc n))))
+          (assert_equal 7 (icba 7))
+          )
+     
+     
+     (with-test-case testIchainIntercept
+          (set ici
+               (alet ((acc 0))
+                     (ichain-intercept
+                                      (if (< acc 0)
+                                          (then
+                                               (puts "ici: acc went negative: #{acc}")
+                                               (set acc 0)
+                                               (intercept acc))))
+                     (do (n)
+                         (incf acc n))))
+          (assert_equal 1 (ici 1))
+          (assert_equal 0 (ici -8))
+          (assert_equal 3 (ici 3))
+          (assert_equal 0 (ici -8)))
+     
+     
+     (with-test-case testAletHotpatch
+          (set hotpatch-test
+               (alet-hotpatch ((acc 0))
+                    (do (n)
+                        (incf acc n))))
+          
+          (assert_equal 3 (hotpatch-test 3))
+          (assert_equal 7 (hotpatch-test 4))
+          
+          (hotpatch-test
+                        hotpatch:
+                        (let ((acc 0))
+                             (do (n)
+                                 (incf acc (* 2 n)))))
+          
+          (assert_equal 4 (hotpatch-test 2))
+          (assert_equal 14 (hotpatch-test 5)))
+     
+     
+     (with-test-case testLetHotpatch
+          (set hotpatch-test
+               (let-hotpatch ((acc 0))
+                    (do (n)
+                        (incf acc n))))
+          
+          (assert_equal 3 (hotpatch-test 3))
+          (assert_equal 7 (hotpatch-test 4))
+          
+          (hotpatch-test
+                        hotpatch:
+                        (let ((acc 0))
+                             (do (n)
+                                 (incf acc (* 2 n)))))
+          
+          (assert_equal 4 (hotpatch-test 2))
+          (assert_equal 14 (hotpatch-test 5))
+          
+          ;; make sure 'this' is not captured
+          ;; in the 'let' version
+          (set hotpatch-test-2
+               (let-hotpatch ((acc 0))
+                    (do (n)
+                        (puts this))))
+          
+          (assert_throws "NuUndefinedSymbol" (hotpatch-test-2 1)))
+     
+     
+     (with-test-case testLetBindingTransform
+          (assert_equal '((a nil) (b nil) (c 5) (d nil))
+               (let-binding-transform '(a (b) (c 5) (d nil)))))
+     
+     (with-test-case testPandoricLetGet
+          (set pantest
+               (pandoriclet ((acc 0))
+                    (do (n) (incf acc n))))
+          
+          (assert_equal 3 (pantest 3))
+          (assert_equal 8 (pantest 5))
+          (assert_equal 8 (pantest pandoric-get: 'acc))
+          (assert_equal 100 (pantest pandoric-set: 'acc 100))
+          (assert_equal 103 (pantest 3))
+          )
      
      )
 

@@ -226,9 +226,9 @@
 
 
 ;; alet-fsm: alet with a finite-state-machine syntax.
-;; The book used macro-let for this.  Since Nu doesn't 
+;; The book used macro-let for this.  Since Nu doesn't
 ;; have macro-let, I changed it to a progn and used
-;; local functions as the "labels" to represent each 
+;; local functions as the "labels" to represent each
 ;; state.
 ;;
 ;; Each "state" can accept a unique parameter list.
@@ -240,6 +240,159 @@
                         `(function ,@s))
               *states)
             ,(caar *states)))
+
+
+;; Section 6.4 - Indirect chaining examples
+;; These work by injecting a closure into the
+;; 'this' variable, which is used by alet.
+
+;; ichain-before: execute a body of code before
+;; invoking the main closure.
+
+(macro-1 ichain-before (*body)
+     `(let ((__indir-env this))
+           (set this
+                (do (*temp-args)
+                    ,@*body
+                    (apply __indir-env *temp-args)))))
+
+
+;; ichain-after: execute a body of code after
+;; invoking the main closure.
+
+(macro-1 ichain-after (*body)
+     `(let ((__indir-env this))
+           (set this
+                (do (*temp-args)
+                    (progn
+                          (set result (apply __indir-env *temp-args))
+                          ,@*body
+                          result)))))
+
+
+;; ichain-intercept: execute a body of code
+;; when an intercept condition becomes true.
+(macro-1 ichain-intercept (*body)
+     `(let ((__indir-env this))
+           (set this
+                (do (*temp-args)
+                    (macro-1 intercept (v)
+                         (list 'return v))
+                    (progn
+                          (set result (apply __indir-env *temp-args))
+                          ,@*body
+                          result)))))
+
+
+;; Section 6.5: Hotpatching Closures
+
+;; alet-hotpatch: Allow hotpatching of
+;; closures.  If you pass 'hotpatch:'
+;; as the first argument, you can replace
+;; the captured closure with a new one.
+
+(macro-1 alet-hotpatch (letargs *body)
+     `(let ((this nil) ,@letargs)
+           (set this ,@(last *body))
+           ,@(butlast *body)
+           (dlambda
+                   (hotpatch: (closure)
+                    (set this closure))
+                   (else (*restargs)
+                         (apply this *restargs)))))
+
+
+;; let-hotpatch: Same as above, but doesn't
+;; capture the 'this' anaphor.  If you don't
+;; need 'this', this version is safer from
+;; unwanted variable capture.
+(macro-1 let-hotpatch (letargs *body)
+     `(let ((__this nil) ,@letargs)
+           (set __this ,@(last *body))
+           ,@(butlast *body)
+           (dlambda
+                   (hotpatch: (closure)
+                    (set __this closure))
+                   (else (*restargs)
+                         (apply __this *restargs)))))
+
+
+;; Section 6.7: Pandoric Macros
+
+;; Utility function to create a Nu-compliant
+;; let bindings list from a list of atoms,
+;; single list symbols, or full let binding
+;; expression.
+(function let-binding-transform (bs)
+     (if bs
+         (then
+              (cons
+                   (cond
+                        ((symbol? (car bs))
+                         ;; a standalone symbol
+                         (list (car bs) 'nil))
+                        ((pair? (car bs))
+                         (if (eq 1 ((car bs) length))
+                             (then
+                                  ;; a symbol in a list
+                                  ;; with no initial value
+                                  (list (caar bs) 'nil))
+                             (else
+                                  ;; use as-is
+                                  (car bs))))
+                        (else
+                             (throw "LetBindingTransformException")))
+                   (let-binding-transform (cdr bs))))))
+
+
+(function pandoriclet-get (letargs)
+     `(cond
+           ,@(mapcar-1 (do (a) `((eq sym ,(car a))
+                                ,(car a))) letargs)
+           (else
+                (throw "PandoricLetGetException"))))
+
+(function pandoriclet-set (letargs)
+     `(cond
+           ,@(mapcar-1 (do (a) `((eq sym ,(car a)) (set ,(car a) val))) letargs)
+           (else
+                (throw "PandoricLetSetException"))))
+
+
+;; pandoriclet: allow the closed-over lexical variables
+;; to be accessed externally.
+(macro-1 pandoriclet (letargs *body)
+     (let ((letargs
+                   (cons '(this nil)
+                         (let-binding-transform letargs))))
+          `(let (,@letargs)
+                (set this ,@(last *body))
+                ,@(butlast *body)
+                (dlambda
+                        (pandoric-get: (sym)
+                         ,(pandoriclet-get letargs))
+                        (pandoric-set: (sym val)
+                         ,(pandoriclet-set letargs))
+                        (else (*restargs)
+                              (apply this *restargs))))))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
