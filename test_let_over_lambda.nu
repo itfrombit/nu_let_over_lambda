@@ -403,10 +403,135 @@
           (assert_equal 8 (pantest pandoric-get: 'acc))
           (assert_equal 100 (pantest pandoric-set: 'acc 100))
           (assert_equal 103 (pantest 3))
-
-          )
+          
+          (assert_equal 103 (get-pandoric pantest 'acc))
+          (assert_equal 10 (set-pandoric pantest 'acc 10))
+          
+          ;; with-pandoric allows us to access the pandoric
+          ;; bindings without the longhand notation as above.
+          (with-pandoric (acc) pantest
+               ;; Can't use set on pandorics because we
+               ;; didn't implement defsetf.
+               ;; Access functions work, though.
+               (assert_equal 10 acc))
+          
+          ;; Patch the function to be executed.
+          ;; Note that this 'acc binding is not the
+          ;; pandoric one in the original closure.
+          (pandoric-hotpatch pantest
+               (let ((acc 100))
+                    (do (n) (decf acc n))))
+          
+          (assert_equal 97 (pantest 3))
+          
+          ;; Note that acc is still 10, because we
+          ;; only patched 'this above.
+          (assert_equal 10
+               (with-pandoric (acc) pantest
+                    acc))
+          
+          ;; This will operate on the original
+          ;; pandoric binding of 'acc.
+          ;; Decrement 'acc by half the passed-in
+          ;; value.
+          (pandoric-recode (acc) pantest
+               (do (n) (decf acc (/ n 2))))
+          
+          (assert_equal 8 (pantest 4)))
      
-     )
+     
+     (with-test-case testPlambda
+          (set pantest
+               (let ((a 0))
+                    (let ((b 1))
+                         (plambda (n) (a b)
+                                  (incf a n)
+                                  (set b (* b n))))))
+          
+          (function pantest-peek ()
+               (with-pandoric (a b) pantest
+                    (list a b)))
+          
+          (assert_equal '(0 1) (pantest-peek))
+          (pantest 1)
+          (assert_equal '(1 1) (pantest-peek))
+          (pantest 1)
+          (assert_equal '(2 1) (pantest-peek))
+          (pantest 4)
+          (assert_equal '(6 4) (pantest-peek)))
+     
+     (with-test-case testMakeStatsCounter
+          (function make-stats-counter ()
+               (let ((count 0)
+                     (sum 0)
+                     (sum-of-squares 0))
+                    (plambda (n) (sum count sum-of-squares)
+                             (incf sum-of-squares (pow n 2))
+                             (incf sum n)
+                             (incf count))))
+          
+          (set sc (make-stats-counter))
+          
+          (defpan stats-counter-mean (sum count)
+               (/ sum count))
+          
+          (defpan stats-counter-variance (sum-of-squares sum count)
+               (if (< count 2)
+                   (then 0)
+                   (else
+                        (/ (- sum-of-squares
+                              (* sum
+                                 (stats-counter-mean self)))
+                           (- count 1)))))
+          
+          (defpan stats-counter-stddev ()
+               (sqrt (stats-counter-variance self)))
+          
+          (mapcar-1 sc '(1 2 3 4 5))
+          (assert_equal '(5 15 55)
+               (with-pandoric (count sum sum-of-squares) sc
+                    (list count sum sum-of-squares)))
+          
+          (assert_equal 3 (stats-counter-mean sc))
+          (assert_equal 2.5 (stats-counter-variance sc))
+          (assert_equal (sqrt 2.5) (stats-counter-stddev sc)))
+     
+     
+     (with-test-case testPandoricEval
+          ;; Pass values into an otherwise null lexical
+          ;; environment.
+          (assert_equal 11
+               (let ((x 10))
+                    (pandoric-eval (x)
+                         '(+ 1 x))))
+          
+          ;; Having the eval modify the calling context
+          ;; doesn't work because we didn't implement
+          ;; defsetf.
+          (assert_equal 10 ;; should be 11
+               (let ((x 10))
+                    (pandoric-eval (x)
+                         '(incf x))
+                    x)))
+
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

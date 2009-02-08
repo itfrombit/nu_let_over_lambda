@@ -19,6 +19,7 @@
 
 ;; Missing from math.nu
 (set pow (NuBridgedFunction functionWithName:"pow" signature:"ddd"))
+(set sqrt (NuBridgedFunction functionWithName:"sqrt" signature:"dd"))
 
 
 ;; Chapter 2 - Closures
@@ -345,6 +346,8 @@
                    (let-binding-transform (cdr bs))))))
 
 
+;; These are two helper functions for the pandoriclet
+;; macro defined below.
 (function pandoriclet-get (letargs)
      `(cond
            ,@(mapcar-1 (do (a) `((eq sym ,(car a))
@@ -377,12 +380,82 @@
                               (apply this *restargs))))))
 
 
+;; get-pandoric: shorthand (not by much) to access a
+;; pandoric binding.
+(function get-pandoric (box sym)
+     (box pandoric-get: sym))
+
+;; Nu doesn't have defsetf functionality (it's complicated to
+;; implement), so the set-pandoric is explicit instead of as
+;; described in the book.  This affects how you can use the
+;; pandoric bindings (no sets with shorthand notation).
+(function set-pandoric (box sym val)
+     (box pandoric-set: sym val))
 
 
+;; with-pandoric: provide a shorthand notation to access
+;; pandoric bindings in the original closure.
+(macro-1 with-pandoric (syms box *body)
+     `(progn
+            (set __box ,box)
+            (let
+                (,@(mapcar-1 (do (a) `(,a (get-pandoric __box ',a))) syms) )
+                ,@*body)))
 
 
+(function pandoric-hotpatch (box new)
+     (set-pandoric box 'this new))
 
 
+;; pandoric-recode: override the original pandoric function using
+;; original pandoric bindings.
+(macro-1 pandoric-recode (vars box new)
+     `(progn
+            (set __box ,box)
+            (with-pandoric (this ,@vars) __box
+                 (set-pandoric __box 'this ,new))))
+
+
+;; plambda: turns pandoric-let inside out.
+;; Can export any variables in existing lexical environment,
+;; making them available in other lexical scopes.
+(macro-1 plambda (largs pargs *body)
+     (let ((pargs (mapcar-1 list pargs)))
+          `(let ((this nil) (self nil))
+                (set this (do ,largs ,@*body))
+                (set self
+                     (dlambda
+                             (pandoric-get: (sym)
+                              ,(pandoriclet-get pargs))
+                             (pandoric-set: (sym val)
+                              ,(pandoriclet-set pargs))
+                             (else (*restargs)
+                                   (apply this *restargs)))))))
+
+
+;; defpan: shorthand for defining pandoric functions.
+;; defpan uses the 'self anaphor and can chain to other
+;; defpan functions.
+(macro-1 defpan (name args *body)
+     `(function ,name (self)
+           ,(if args
+                (then
+                     `(with-pandoric ,args self
+                           ,@*body))
+                (else
+                     `(progn ,@*body)))))
+
+
+;; How to pass bindings into an otherwise null
+;; eval lexical environment.
+(set pandoric-eval-tunnel nil)
+
+(macro-1 pandoric-eval (vars expr)
+     `(let ((pandoric-eval-tunnel (plambda () ,vars t)))
+           (eval
+                (list 'with-pandoric
+                      ',vars 'pandoric-eval-tunnel
+                      ,expr))))
 
 
 
